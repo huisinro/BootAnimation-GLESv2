@@ -71,16 +71,8 @@ namespace android {
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 
-static void printGLString(const char *name, GLenum s) {
-    // fprintf(stderr, "printGLString %s, %d\n", name, s);
+static void printGLString(const char *name, GLenum s) {  
     const char *v = (const char *) glGetString(s);
-    // int error = glGetError();
-    // fprintf(stderr, "glGetError() = %d, result of glGetString = %x\n", error,
-    //        (unsigned int) v);
-    // if ((v < (const char*) 0) || (v > (const char*) 0x10000))
-    //    fprintf(stderr, "GL %s = %s\n", name, v);
-    // else
-    //    fprintf(stderr, "GL %s = (null) 0x%08x\n", name, (unsigned int) v);
     fprintf(stderr, "GL %s = %s\n", name, v);
 }
 static const char* eglErrorToString[] = {
@@ -113,6 +105,7 @@ static void checkGlError(const char* op) {
         fprintf(stderr, "after %s() glError (0x%x)\n", op, error);
     }
 }
+
 static const char gVertexShader[] = "attribute vec4 vPosition;\n"
     "void main() {\n"
     "  gl_Position = vPosition;\n"
@@ -121,6 +114,7 @@ static const char gFragmentShader[] = "precision mediump float;\n"
     "void main() {\n"
     "  gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);\n"
     "}\n";
+
 GLuint loadShader(GLenum shaderType, const char* pSource) {
     GLuint shader = glCreateShader(shaderType);
     if (shader) {
@@ -222,6 +216,8 @@ bool initGL2State (GLuint *p_out_program, GLuint *p_out_texture) {
 	
 	*p_out_program = program;
 	*p_out_texture = texture;
+
+  	fprintf(stderr, "initGL2State(): succeeded\n");
   
     return true;
     
@@ -233,59 +229,9 @@ void destroy(GLuint program, GLuint texture) {
 }
 
 //    draw function from ColorSupport.cpp
-void draw1(GLuint program, GLuint texture, int x, int y, int width, int height)
-{
-    printf("Enteted GLsupport draw func %d %d\n", width, height);
-    GLfloat vertices[] =
-    {
-			-0.5f,  0.5f, 0.0f,  // Position 0
-            0.0f,  0.0f,        // TexCoord 0
-			-0.5f, -0.5f, 0.0f,  // Position 1
-            0.0f,  1.0f,        // TexCoord 1
-            0.5f, -0.5f, 0.0f,  // Position 2
-            1.0f,  1.0f,        // TexCoord 2
-            0.5f,  0.5f, 0.0f,  // Position 3
-            1.0f,  0.0f         // TexCoord 3
-    };
-    GLushort indices[] = { 0, 1, 2, 0, 2, 3 };
-
-    // Set the viewport
-    glViewport(x, y, width, height);
-
-    // Clear the color buffer
-//    glClear(GL_COLOR_BUFFER_BIT);
-
-    // Use the program object
-    glUseProgram(program);
-
-	 // Get the attribute locations
-    GLint positionLoc = glGetAttribLocation(program, "a_position");
-    GLint texCoordLoc = glGetAttribLocation(program, "a_texCoord");
-
-    // Get the sampler location
-    GLint samplerLoc = glGetUniformLocation(program, "s_texture");
-
-    // Load the vertex position
-    glVertexAttribPointer(positionLoc, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), vertices);
-    // Load the texture coordinate
-    glVertexAttribPointer(texCoordLoc, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), vertices + 3);
-
-    glEnableVertexAttribArray(positionLoc);
-    glEnableVertexAttribArray(texCoordLoc);
-
-    // Bind the texture
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    // Set the texture sampler to texture unit to 0
-    glUniform1i(samplerLoc, 0);
-
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices);	
-}
 
 void draw(GLuint program, GLuint texture, int x, int y, int width, int height) 
 {
-//        printf("Enteted draw func %d %d\n", width, height);
 	GLfloat verts[] = { -1.0f, -1.0f, 0.0f, 
 			    -1.0f, +1.0f, 0.0f,
 			    +1.0f, -1.0f, 0.0f, 
@@ -297,22 +243,20 @@ void draw(GLuint program, GLuint texture, int x, int y, int width, int height)
 			      1.0f, 0.0f };
 
 	glViewport(x, y, width, height);
+//	glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
 //	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glBindTexture(GL_TEXTURE_2D, texture);
 
 	glUseProgram(program);
 	GLint positionLoc = glGetAttribLocation(program, "a_position");
 	GLint texCoordLoc = glGetAttribLocation(program, "a_texCoord");
-//        GLint samplerLoc = glGetUniformLocation(program, "s_texture");
-
 	glVertexAttribPointer(positionLoc, 3, GL_FLOAT, GL_FALSE, 0, verts);
 	glVertexAttribPointer(texCoordLoc, 2, GL_FLOAT, GL_FALSE, 0, tcoords);
 	glEnableVertexAttribArray(positionLoc);
 	glEnableVertexAttribArray(texCoordLoc);
-//	glUniform1i(samplerLoc, 0);
 	glActiveTexture(GL_TEXTURE0);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
+	
 }
 #if 0
 void readback(unsigned char* img) {
@@ -367,9 +311,9 @@ void printEGLConfiguration(EGLDisplay display, EGLConfig config) {
 
     for (size_t j = 0; j < sizeof(names) / sizeof(names[0]); j++) {
         EGLint value = -1;
-        EGLint returnValue = eglGetConfigAttrib(display, config, names[j].attribute, &value);
+        EGLint returnVal = eglGetConfigAttrib(display, config, names[j].attribute, &value);
         EGLint error = eglGetError();
-        if (returnValue && error == EGL_SUCCESS) {
+        if (returnVal && error == EGL_SUCCESS) {
             printf(" %s: ", names[j].name);
             printf("%d (0x%x)", value, value);
         }
@@ -377,9 +321,9 @@ void printEGLConfiguration(EGLDisplay display, EGLConfig config) {
     printf("\n");
 }
 
-int printEGLConfigurations(EGLDisplay dpy) {
+int printEGLConfigurations(EGLDisplay display) {
     EGLint numConfig = 0;
-    EGLint returnVal = eglGetConfigs(dpy, NULL, 0, &numConfig);
+    EGLint returnVal = eglGetConfigs(display, NULL, 0, &numConfig);
     checkEglError("eglGetConfigs", returnVal);
     if (!returnVal) {
         return false;
@@ -393,7 +337,7 @@ int printEGLConfigurations(EGLDisplay dpy) {
         return false;
     }
 
-    returnVal = eglGetConfigs(dpy, configs, numConfig, &numConfig);
+    returnVal = eglGetConfigs(display, configs, numConfig, &numConfig);
     checkEglError("eglGetConfigs", returnVal);
     if (!returnVal) {
         free(configs);
@@ -402,7 +346,7 @@ int printEGLConfigurations(EGLDisplay dpy) {
 
     for(int i = 0; i < numConfig; i++) {
         printf("Configuration %d\n", i);
-        printEGLConfiguration(dpy, configs[i]);
+        printEGLConfiguration(display, configs[i]);
     }
 
     free(configs);
@@ -445,8 +389,10 @@ void BootAnimation::binderDied(const wp<IBinder>& who)
 status_t BootAnimation::initTexture(Texture* texture, AssetManager& assets,
         const char* name) {
     Asset* asset = assets.open(name, Asset::ACCESS_BUFFER);
-    if (!asset)
+    if (!asset) {
+		printf("can not load image!\n");	
         return NO_INIT;
+}
     SkBitmap bitmap;
     SkImageDecoder::DecodeMemory(asset->getBuffer(false), asset->getLength(),
             &bitmap, SkBitmap::kNo_Config, SkImageDecoder::kDecodePixels_Mode);
@@ -489,11 +435,12 @@ status_t BootAnimation::initTexture(Texture* texture, AssetManager& assets,
             break;
     }
 
- //   glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_CROP_RECT_OES, crop);
-  //  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
- //   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
- //   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
- //   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+//    glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_CROP_RECT_OES, crop);
+	checkGlError("glTexParameteriv");
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     return NO_ERROR;
 }
 
@@ -554,7 +501,8 @@ status_t BootAnimation::initTexture(void* buffer, size_t len)
             break;
     }
 
-//    glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_CROP_RECT_OES, crop);
+  //  glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_CROP_RECT_OES, crop);
+	checkGlError("glTexParameteriv");
 
     return NO_ERROR;
 }
@@ -676,9 +624,6 @@ bool BootAnimation::threadLoop()
     return r;
 }
 
-
-
-
 bool BootAnimation::android()
 {
     initTexture(&mAndroid[0], mAssets, "images/android-logo-mask.png");
@@ -692,25 +637,26 @@ bool BootAnimation::android()
     glClear(GL_COLOR_BUFFER_BIT);
     eglSwapBuffers(mDisplay, mSurface);
 
-    glEnable(GL_TEXTURE_2D);
+//    glEnable(GL_TEXTURE_2D);
 //    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
     
     const GLint xc = (mWidth  - mAndroid[0].w) / 2;
     const GLint yc = (mHeight - mAndroid[0].h) / 2;
     const Rect updateRect(xc, yc, xc + mAndroid[0].w, yc + mAndroid[0].h);
 
-    glScissor(updateRect.left, mHeight - updateRect.bottom, updateRect.width(),
+   glScissor(updateRect.left, mHeight - updateRect.bottom, updateRect.width(),
          updateRect.height());
 
-//    printf("Print xc and yc %d %d %d %d %d %d\n", mWidth, mAndroid[0].w, mHeight, xc, yc, mAndroid[0].h);
+
     // Blend state
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
- //   glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+//    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	GLuint texture;
 	GLuint program;
 	initGL2State(&program, &texture);
 
+//		setupGraphics(mWidth, mHeight);
     const nsecs_t startTime = systemTime();
     do {
         nsecs_t now = systemTime();
@@ -719,17 +665,17 @@ bool BootAnimation::android()
         GLint offset = (1 - (t - floorf(t))) * mAndroid[1].w;
         GLint x = xc - offset;
 
-//    printf("Print x and offset %d %d \n", x, offset);
         glDisable(GL_SCISSOR_TEST);
         glClear(GL_COLOR_BUFFER_BIT);
         glEnable(GL_SCISSOR_TEST);
-        glDisable(GL_BLEND);
-	draw(program, mAndroid[1].name, x, yc, mAndroid[1].w, mAndroid[1].h);
-	draw(program, mAndroid[1].name, x + mAndroid[1].w, yc, mAndroid[1].w, mAndroid[1].h);
+//        glDisable(GL_BLEND);
 
+		draw(program, mAndroid[1].name, x, yc, mAndroid[1].w, mAndroid[1].h);
+		draw(program, mAndroid[1].name, x + mAndroid[1].w, yc, mAndroid[1].w, mAndroid[1].h);
         glEnable(GL_BLEND);
-	draw(program, mAndroid[0].name, xc, yc, mAndroid[0].w, mAndroid[0].h);
+		draw(program, mAndroid[0].name, xc, yc, mAndroid[0].w, mAndroid[0].h);
    
+
         EGLBoolean res = eglSwapBuffers(mDisplay, mSurface);
         if (res == EGL_FALSE)
             break;
